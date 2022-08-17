@@ -1,4 +1,4 @@
-// Storage Controlle
+// Storage Controller
 
 // Item Controller
 const ItemController = (() => {
@@ -40,6 +40,35 @@ const ItemController = (() => {
       // return the item
       return item;
     },
+    getTotalCalories: () => {
+      return data.items.reduce(
+        (previousValue, item) => previousValue + item.calories,
+        0
+      );
+    },
+    getItemById: (id) => {
+      let itemFound;
+      data.items.forEach((item) => {
+        if (item.id === id) {
+          itemFound = item;
+        }
+      });
+      return itemFound;
+    },
+    setCurrentItem: (item) => {
+      data.currentItem = item;
+    },
+    getCurrentItem: () => {
+      return data.currentItem;
+    },
+    updateItem(itemEdited, name, calories) {
+      data.items.forEach((item) => {
+        if (itemEdited.id === item.id) {
+          item.name = name;
+          item.calories = parseInt(calories);
+        }
+      });
+    },
   };
 })();
 
@@ -54,6 +83,7 @@ const UIController = (() => {
     backButton: document.querySelector(".back-btn"),
     itemName: document.querySelector("#item-name"),
     itemCalories: document.querySelector("#item-calories"),
+    totalCalories: document.querySelector(".total-calories"),
   };
   // Public Methods
   return {
@@ -97,6 +127,30 @@ const UIController = (() => {
     showList: () => {
       UISelectors.itemList.style.display = "block";
     },
+    // Update Calories Total
+    updateTotalCalories(total) {
+      UISelectors.totalCalories.innerHTML = `${total}`;
+    },
+    // Clear edit fields
+    clearEditState: () => {
+      UIController.clearFields();
+      UISelectors.updateButton.style.display = "none";
+      UISelectors.deleteButton.style.display = "none";
+      UISelectors.backButton.style.display = "none";
+      UISelectors.addButton.style.display = "inline";
+    },
+    showEditState: () => {
+      UISelectors.updateButton.style.display = "inline";
+      UISelectors.deleteButton.style.display = "inline";
+      UISelectors.backButton.style.display = "inline";
+      UISelectors.addButton.style.display = "none";
+    },
+    // add items to be edited to the input fields
+    addItemToForm: () => {
+      UISelectors.itemCalories.value = ItemController.getCurrentItem().calories;
+      UISelectors.itemName.value = ItemController.getCurrentItem().name;
+      UIController.showEditState();
+    },
   };
 })();
 
@@ -107,7 +161,12 @@ const App = ((ItemController, UIController) => {
     // get Selectors
     const UISelectors = UIController.getSelectors();
     // Add Event Listeners
+    // Add Item Events
     UISelectors.addButton.addEventListener("click", itemAddSubmit);
+    // Edit Item Event
+    UISelectors.itemList.addEventListener("click", itemEditClick);
+    // Update Edited Item Event
+    UISelectors.updateButton.addEventListener("click", itemUpdateSubmit);
   };
 
   // Add Item Submit
@@ -128,14 +187,65 @@ const App = ((ItemController, UIController) => {
       UIController.populateItemList(items);
       // Clear Input Fields
       UIController.clearFields();
+      // Get Total Calories and update it in the user interface
+      UIController.updateTotalCalories(ItemController.getTotalCalories());
+
       UIController.showList();
     }
+    e.preventDefault();
+  };
+
+  // Edit Item Method
+  const itemEditClick = (e) => {
+    if (e.target.classList.contains("edit-item")) {
+      // Get list item id
+      let listId = e.target.parentElement.parentElement.id;
+      // only get the number part after the dash and parse it to number
+      listId = parseInt(listId.split("-")[1]);
+      // get the item from the item list by id
+      const itemToEdit = ItemController.getItemById(listId);
+      // set current item in the data structure
+      ItemController.setCurrentItem(itemToEdit);
+      // Add item fields to input fields
+      UIController.addItemToForm();
+    }
+    e.preventDefault();
+  };
+
+  // Submit the updated item
+  const itemUpdateSubmit = (e) => {
+    // get item input from user interface
+    const itemInput = UIController.getItemInput();
+
+    // Check if anything entered in form fields
+    if (itemInput.name !== "" && itemInput.calories !== "") {
+      // update the item in the list
+      ItemController.updateItem(
+        ItemController.getCurrentItem(),
+        itemInput.name,
+        itemInput.calories
+      );
+      // Fetch Items from Data Structure
+      const items = ItemController.getItems();
+      // Populate list with items
+      UIController.populateItemList(items);
+      // Clear Input Fields
+      UIController.clearFields();
+      // Get Total Calories and update it in the user interface
+      UIController.updateTotalCalories(ItemController.getTotalCalories());
+
+      UIController.clearEditState();
+      UIController.showList();
+    }
+
     e.preventDefault();
   };
 
   // Public Methods
   return {
     init: () => {
+      // Set initial state
+      UIController.clearEditState();
       // Fetch Items from Data Structure
       const items = ItemController.getItems();
       if (items.length === 0) {
@@ -143,6 +253,8 @@ const App = ((ItemController, UIController) => {
       } else {
         // Populate list with items
         UIController.populateItemList(items);
+        // Get Total Calories and update it in the user interface
+        UIController.updateTotalCalories(ItemController.getTotalCalories());
       }
       // Load Event Listeners
       loadEventListeners();
