@@ -12,9 +12,9 @@ const ItemController = (() => {
   // Data Structure / State
   const data = {
     items: [
-      { id: 0, name: "Steak Dinner", calories: 1200 },
-      { id: 1, name: "Ice Cream", calories: 800 },
-      { id: 2, name: "Eggs", calories: 300 },
+      // { id: 0, name: "Steak Dinner", calories: 1200 },
+      // { id: 1, name: "Ice Cream", calories: 800 },
+      // { id: 2, name: "Eggs", calories: 300 },
     ],
     currentItem: null,
     totalCalories: 0,
@@ -28,6 +28,18 @@ const ItemController = (() => {
     logData: () => {
       return data;
     },
+    addItem: (name, calories) => {
+      // Create ID
+      let ID = data.items.length > 0 ? data.items.length : 0;
+      // parse calories string to number
+      calories = parseInt(calories);
+      // create new item
+      const item = new Item(ID, name, calories);
+      // push it to the items array
+      data.items.push(item);
+      // return the item
+      return item;
+    },
   };
 })();
 
@@ -36,10 +48,12 @@ const UIController = (() => {
   // const itemList = document.querySelector("#item-list");
   const UISelectors = {
     itemList: document.querySelector("#item-list"),
-    addButton: document.querySelector("#item-list"),
-    editButton: document.querySelector("#item-list"),
-    deleteButton: document.querySelector("#item-list"),
-    backButton: document.querySelector("#item-list"),
+    addButton: document.querySelector(".add-btn"),
+    updateButton: document.querySelector(".update-btn"),
+    deleteButton: document.querySelector(".delete-btn"),
+    backButton: document.querySelector(".back-btn"),
+    itemName: document.querySelector("#item-name"),
+    itemCalories: document.querySelector("#item-calories"),
   };
   // Public Methods
   return {
@@ -63,6 +77,26 @@ const UIController = (() => {
     getSelectors: () => {
       return UISelectors;
     },
+    // get Item Input from UI
+    getItemInput: () => {
+      return {
+        name: UISelectors.itemName.value,
+        calories: UISelectors.itemCalories.value,
+      };
+    },
+    // Clear input fields
+    clearFields: () => {
+      UISelectors.itemCalories.value = "";
+      UISelectors.itemName.value = "";
+    },
+    // Hide meals list
+    hideList: () => {
+      UISelectors.itemList.style.display = "none";
+    },
+    // Show meals list
+    showList: () => {
+      UISelectors.itemList.style.display = "block";
+    },
   };
 })();
 
@@ -72,6 +106,31 @@ const App = ((ItemController, UIController) => {
   const loadEventListeners = () => {
     // get Selectors
     const UISelectors = UIController.getSelectors();
+    // Add Event Listeners
+    UISelectors.addButton.addEventListener("click", itemAddSubmit);
+  };
+
+  // Add Item Submit
+  const itemAddSubmit = (e) => {
+    // get item input from user interface
+    const itemInput = UIController.getItemInput();
+
+    // Check if anything entered in form fields
+    if (itemInput.name !== "" && itemInput.calories !== "") {
+      // add item to the list
+      const newItem = ItemController.addItem(
+        itemInput.name,
+        itemInput.calories
+      );
+      // Fetch Items from Data Structure
+      const items = ItemController.getItems();
+      // Populate list with items
+      UIController.populateItemList(items);
+      // Clear Input Fields
+      UIController.clearFields();
+      UIController.showList();
+    }
+    e.preventDefault();
   };
 
   // Public Methods
@@ -79,8 +138,14 @@ const App = ((ItemController, UIController) => {
     init: () => {
       // Fetch Items from Data Structure
       const items = ItemController.getItems();
-      // Populate list with items
-      UIController.populateItemList(items);
+      if (items.length === 0) {
+        UIController.hideList();
+      } else {
+        // Populate list with items
+        UIController.populateItemList(items);
+      }
+      // Load Event Listeners
+      loadEventListeners();
     },
   };
 })(ItemController, UIController);
