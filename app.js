@@ -61,13 +61,17 @@ const ItemController = (() => {
     getCurrentItem: () => {
       return data.currentItem;
     },
-    updateItem(itemEdited, name, calories) {
+    updateItem: (itemEdited, name, calories) => {
       data.items.forEach((item) => {
         if (itemEdited.id === item.id) {
           item.name = name;
           item.calories = parseInt(calories);
         }
       });
+    },
+    deleteItem: () => {
+      data.items = data.items.filter((item) => item.id !== data.currentItem.id);
+      console.log(data.items);
     },
   };
 })();
@@ -167,6 +171,13 @@ const App = ((ItemController, UIController) => {
     UISelectors.itemList.addEventListener("click", itemEditClick);
     // Update Edited Item Event
     UISelectors.updateButton.addEventListener("click", itemUpdateSubmit);
+    // Delete  Item Event
+    UISelectors.deleteButton.addEventListener("click", itemDeleteSubmit);
+    // Back Button
+    UISelectors.backButton.addEventListener(
+      "click",
+      UIController.clearEditState
+    );
   };
 
   // Add Item Submit
@@ -239,6 +250,22 @@ const App = ((ItemController, UIController) => {
     }
 
     e.preventDefault();
+  };
+
+  // Delete the selected item
+  const itemDeleteSubmit = (e) => {
+    ItemController.deleteItem();
+    // Fetch Items from Data Structure
+    const items = ItemController.getItems();
+    // Populate list with items
+    UIController.populateItemList(items);
+    // Clear Input Fields
+    UIController.clearFields();
+    // Get Total Calories and update it in the user interface
+    UIController.updateTotalCalories(ItemController.getTotalCalories());
+
+    UIController.clearEditState();
+    UIController.showList();
   };
 
   // Public Methods
